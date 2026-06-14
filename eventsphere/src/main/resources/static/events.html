@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Events — EventSphere</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* Premium Extension Design Tokens */
+    :root {
+      --bg-card: #161925;
+      --border-color: #2e3244;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-primary: #7c6ef5;
+    }
+
+    /* ── Dynamic System Toasts ── */
+    #toastBox {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 9999;
+    }
+    .toast {
+      background: #252533;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-primary);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      font-size: 0.85rem;
+      font-weight: 500;
+      animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    .toast.toast-error { border-left-color: #f25f5c; }
+    .toast.toast-success { border-left-color: #3ecf8e; }
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .event-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .event-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(124, 110, 245, 0.4);
+    }
+
+    .card-top {
+      margin-bottom: 1.5rem;
+    }
+
+    .card-badges {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .category-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Dynamic Category Coloring Rules */
+    .cat-hackathon { background: rgba(124, 110, 245, 0.15); color: #7c6ef5; }
+    .cat-workshop { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .cat-seminar { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+    .cat-cultural { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+
+    .venue-info {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .event-title {
+      margin: 0 0 0.75rem 0;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .event-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slot-counter {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .card-actions {
+      margin-top: 1.5rem;
+    }
+
+    /* Core Dynamic Status Interaction Buttons */
+    .btn-action {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-reg { background: #3ecf8e; color: #0f111a; }
+    .btn-reg:hover { background: #32b379; }
+    
+    .btn-wait { background: #f5a623; color: #0f111a; }
+    .btn-wait:hover { background: #d98e14; }
+    
+    .btn-canc { background: rgba(242, 95, 92, 0.15); color: #f25f5c; border: 1px solid rgba(242, 95, 92, 0.3); }
+    .btn-canc:hover { background: rgba(242, 95, 92, 0.25); }
+  </style>
+</head>
+<body>
+
+<script src="shared/api.js"></script>
+<script>
+  // Fallback if layout build navbar builder doesn't exist
+  if (typeof buildNavbar === 'function') {
+    buildNavbar('events');
+  }
+</script>
+
+<div id="toastBox"></div>
+
+<div class="section">
+  <div style="margin-bottom:2rem">
+    <div class="section-tag">Browse Campus Hub</div>
+    <div class="section-title">Upcoming Events</div>
+    <div class="section-sub">Discover, search, and claim passes for dynamic events across your departments</div>
+  </div>
+
+  <div class="search-row">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="eventSearch" placeholder="Search by title, club, or venue..." oninput="filterEvents()"/>
+    </div>
+    <button class="chip active" onclick="setFilter(this,'ALL')">All Everything</button>
+    <button class="chip" onclick="setFilter(this,'HACKATHON')">Hackathons</button>
+    <button class="chip" onclick="setFilter(this,'WORKSHOP')">Workshops</button>
+    <button class="chip" onclick="setFilter(this,'SEMINAR')">Seminars</button>
+    <button class="chip" onclick="setFilter(this,'CULTURAL')">Cultural Fests</button>
+  </div>
+
+  <div class="grid-3" id="eventsGrid">
+    <div class="loader"><div class="spin"></div></div>
+  </div>
+</div>
+
+<script>
+let allEvents     = [];
+let currentFilter = 'ALL';
+
+// Track logged-in status dynamically from the global store
+const currentUser = JSON.parse(localStorage.getItem('user')) || null;
+
+async function loadEvents() {
+  document.getElementById('eventsGrid').innerHTML = '<div class="loader"><div class="spin"></div></div>';
+  try {
+    const data = await GET('/events');
+    allEvents = data.content || data || [];
+    filterEvents();
+  } catch(e) {
+    // Shared Data Store Matrix mapping perfectly with your Home View setup tags
+    allEvents = [
+      { id: 'evt_001', title: 'ByteCraft 2026: 24-Hour Hackathon', category: 'HACKATHON', venue: 'Advanced Coding Lab 3', maxSeats: 150, baseSeats: 142, date: 'May 15', time: '09:00 AM' },
+      { id: 'evt_002', title: 'Generative AI & Chatbot Bootcamp', category: 'WORKSHOP', venue: 'Seminar Hall A', maxSeats: 60, baseSeats: 58, date: 'May 18', time: '11:30 AM' },
+      { id: 'evt_003', title: 'Symphony \'26: Annual Talent Fest', category: 'CULTURAL', venue: 'Open Air Theater (OAT)', maxSeats: 500, baseSeats: 310, date: 'May 22', time: '05:30 PM' },
+      { id: 'evt_004', title: 'UI/UX Masterclass: Designing Apps', category: 'WORKSHOP', venue: 'New Media Design Lab', maxSeats: 120, baseSeats: 85, date: 'May 25', time: '11:00 AM' },
+      { id: 'evt_005', title: 'Campus Gaming Arena Tournament', category: 'CULTURAL', venue: 'Student Indoor Arena', maxSeats: 32, baseSeats: 30, date: 'May 28', time: '04:00 PM' },
+      { id: 'evt_006', title: 'Startup Pitch Fest \'26: Final Call', category: 'HACKATHON', venue: 'Campus Incubation Hub', maxSeats: 25, baseSeats: 12, date: 'June 02', time: '10:00 AM' }
+    ];
+    filterEvents();
+  }
+}
+
+function setFilter(el, cat) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = cat;
+  filterEvents();
+}
+
+function filterEvents() {
+  const kw = document.getElementById('eventSearch')?.value.toLowerCase() || '';
+  const filtered = allEvents.filter(e => {
+    const matchCat = currentFilter === 'ALL' || e.category === currentFilter;
+    const matchKw  = !kw || e.title.toLowerCase().includes(kw) || (e.venue||'').toLowerCase().includes(kw);
+    return matchCat && matchKw;
+  });
+  
+  if (filtered.length === 0) {
+    document.getElementById('eventsGrid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1; text-align:center; padding:3rem 0;">
+        <div style="font-size:3rem; margin-bottom:1rem;">🔍</div>
+        <div style="font-size:1.2rem; font-weight:700; color:#fff;">No results match your search parameters</div>
+        <p style="font-size:.85rem; color:var(--text-muted); margin-top:5px;">Try swapping categories or searching a different keyword</p>
+      </div>`;
+    return;
+  }
+  document.getElementById('eventsGrid').innerHTML = filtered.map(eventCard).join('');
+}
+
+/**
+ * HIGH-PERFORMANCE DOM BUILDER: Reads standard state parameters dynamically
+ */
+function eventCard(e) {
+  // Sync live counters with user storage database arrays
+  const registrations = JSON.parse(localStorage.getItem('user_registrations')) || [];
+  const addedSignupsCount = registrations.filter(r => r.eventId === e.id).length;
+  const liveCurrentSeats = e.baseSeats + addedSignupsCount;
+  const availableSeats = e.maxSeats - liveCurrentSeats;
+
+  // Verify status records matching current profile context loops
+  const isUserRegistered = currentUser && registrations.some(
+    r => r.userId === currentUser.email && r.eventId === e.id
+  );
+
+  let actionButton = '';
+  let subStatusText = '';
+  const badgeClass = `cat-${e.category.toLowerCase()}`;
+
+  if (isUserRegistered) {
+    actionButton = `<button class="btn-action btn-canc" onclick="handleAction('${e.id}', 'cancel')">Cancel Registration Pass</button>`;
+    subStatusText = `<span style="color:#3ecf8e; font-weight:700;">✓ Assigned to your profile</span>`;
+  } else if (availableSeats > 0) {
+    actionButton = `<button class="btn-action btn-reg" onclick="handleAction('${e.id}', 'register')">Claim Open Pass</button>`;
+    subStatusText = `<span style="color:#38bdf8; font-weight:600;">${availableSeats} open slots remaining</span>`;
+  } else {
+    actionButton = `<button class="btn-action btn-wait" onclick="handleAction('${e.id}', 'register')">Join Waitlist Queue</button>`;
+    subStatusText = `<span style="color:#f5a623; font-weight:600;">Full slots remaining</span>`;
+  }
+
+  return `
+    <div class="event-card" data-event-id="${e.id}">
+      <div class="card-top">
+        <div class="card-badges">
+          <span class="category-badge ${badgeClass}">${e.category}</span>
+          <span class="venue-info">📍 ${e.venue}</span>
+        </div>
+        <h3 class="event-title">${e.title}</h3>
+        
+        <div class="event-meta-row">
+          <div class="meta-item"><span>📅</span> ${e.date || 'TBD'}</div>
+          <div class="meta-item"><span>🕒</span> ${e.time || 'TBD'}</div>
+        </div>
+        <div class="slot-counter" style="font-size:0.8rem; color:var(--text-muted); margin-top:12px;">
+          Availability Metrics: ${subStatusText}
+        </div>
+      </div>
+      <div class="card-actions">
+        ${actionButton}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * ACTION ROUTER: Manages registration states dynamically inside database arrays
+ */
+async function handleAction(eventId, actionType) {
+  // Guard Rail Check: User validation verification logic
+  if (!currentUser || !currentUser.email) {
+    showToast("Authentication required! Please log in first.", "WARNING");
+    return;
+  }
+
+  let registrations = JSON.parse(localStorage.getItem('user_registrations')) || [];
+
+  if (actionType === 'register') {
+    const alreadySaved = registrations.some(
+      r => r.userId === currentUser.email && r.eventId === eventId
+    );
+
+    if (alreadySaved) {
+      showToast("You are already signed up for this experience space.", "WARNING");
+      return;
+    }
+
+    registrations.push({
+      userId: currentUser.email,
+      eventId: eventId,
+      timestamp: new Date().toISOString()
+    });
+    
+    localStorage.setItem('user_registrations', JSON.stringify(registrations));
+    showToast("Pass claimed! Registration completed successfully.", "SUCCESS");
+  } else if (actionType === 'cancel') {
+    // Cleanly pull out reservation logs matching profile context
+    registrations = registrations.filter(
+      r => !(r.userId === currentUser.email && r.eventId === eventId)
+    );
+    
+    localStorage.setItem('user_registrations', JSON.stringify(registrations));
+    showToast("Reservation cancelled successfully.", "SUCCESS");
+  }
+
+  // Reload the view context layer instantly 
+  filterEvents();
+}
+
+/**
+ * UI TOAST NOTIFICATION UTILITY
+ */
+function showToast(msg, type = "INFO") {
+  const box = document.getElementById('toastBox');
+  if(!box) return;
+  const toast = document.createElement('div');
+  toast.className = "toast";
+  
+  if(type === "SUCCESS") toast.classList.add("toast-success");
+  if(type === "WARNING") toast.classList.add("toast-error");
+  
+  toast.textContent = msg;
+  box.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// Initial engine load startup hook
+loadEvents();
+</script>
+
+</body>
+</html>

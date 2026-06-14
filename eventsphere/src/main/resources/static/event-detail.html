@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Event Detail — EventSphere</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<script src="shared/api.js"></script>
+<script>buildNavbar('events')</script>
+
+<div id="toastBox"></div>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qrModal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="document.getElementById('qrModal').style.display='none'">✕</button>
+    <div style="font-family:var(--fh);font-size:1.15rem;font-weight:800">Your Entry QR Code</div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:4px">Show this at the event entrance</p>
+    <div class="qr-img-wrap" id="qrContent"><div class="spin"></div></div>
+    <p id="qrEventName" style="text-align:center;font-weight:600;font-size:.88rem"></p>
+    <p style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:6px">⚠️ Do not share this QR with others</p>
+  </div>
+</div>
+
+<!-- Content area -->
+<div id="detailContent">
+  <div class="loader" style="min-height:60vh"><div class="spin"></div></div>
+</div>
+
+<script>
+let myRegs = []
+
+async function init() {
+  const params  = new URLSearchParams(window.location.search)
+  const eventId = params.get('id')
+  if (!eventId) { window.location.href = 'events.html'; return }
+
+  await loadMyRegs()
+
+  try {
+    const e = await GET('/events/public/' + eventId)
+    renderDetail(e)
+  } catch(err) {
+    document.getElementById('detailContent').innerHTML =
+      '<div class="empty"><div class="empty-title">Event not found</div></div>'
+  }
+}
+
+async function loadMyRegs() {
+  const user = getUser()
+  if (!user) return
+  try { myRegs = await GET('/registrations/my') || [] } catch { myRegs = [] }
+}
+
+function renderDetail(e) {
+  const pct  = e.totalSeats > 0 ? Math.round(e.registeredCount / e.totalSeats * 100) : 0
+  const full = e.registeredCount >= e.totalSeats
+  const user = getUser()
+  const reg  = myRegs.find(r => r.event?.id === e.id)
+
+  let actionBtn = ''
+  if (!user) {
+    actionBtn = `<a class="btn-primary" href="login.html" style="padding:12px 28px;font-size:.95rem">Login to Register</a>`
+  } else if (reg) {
+    actionBtn = `
+      <span class="tag-sm status-${reg.status}" style="margin-right:10px">${reg.status}</span>
+      ${reg.status === 'CONFIRMED' || reg.status === 'WAITLISTED' ? `
+        <button class="btn-sm btn-accent" style="margin-right:8px" onclick="showQR(${e.id},'${e.title.replace(/'/g,"\\'")}')">📱 My QR</button>
+        <button class="btn-sm btn-red" onclick="cancelReg(${e.id})">Cancel</button>` : ''}
+    `
+  } else if (full) {
+    actionBtn = `<button class="btn-primary" style="padding:12px 28px" onclick="registerEvent(${e.id})">Join Waitlist</button>`
+  } else {
+    actionBtn = `<button class="btn-primary" style="padding:12px 28px;font-size:.95rem" onclick="registerEvent(${e.id})">Register Now</button>`
+  }
+
+  document.title = `${e.title} — EventSphere`
+  document.getElementById('detailContent').innerHTML = `
+  <div class="event-detail-hero">
+    <div class="event-detail-inner">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span class="cat-badge cat-${e.category}">${e.category}</span>
+        ${e.certificateEnabled ? '<span class="tag-sm" style="background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.3)">📜 Certificate</span>' : ''}
+        ${e.leaderboardEnabled ? '<span class="tag-sm" style="background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.3)">🏆 Leaderboard</span>' : ''}
+        ${e.teamEvent ? '<span class="tag-sm" style="background:rgba(232,93,159,.15);color:var(--pink);border:1px solid rgba(232,93,159,.3)">👥 Team Event</span>' : ''}
+      </div>
+      <div class="event-detail-title">${e.title}</div>
+      <p style="color:var(--muted);line-height:1.8;max-width:700px;font-size:.95rem">${e.description || 'No description provided.'}</p>
+      <div class="event-info-grid">
+        <div class="event-info-card"><div class="event-info-label">Date</div><div class="event-info-val">${fmtDate(e.startDateTime)}</div></div>
+        <div class="event-info-card"><div class="event-info-label">Time</div><div class="event-info-val">${fmtTime(e.startDateTime)} – ${fmtTime(e.endDateTime)}</div></div>
+        <div class="event-info-card"><div class="event-info-label">Venue</div><div class="event-info-val">${e.venue || 'TBA'}</div></div>
+        <div class="event-info-card"><div class="event-info-label">Seats</div><div class="event-info-val" style="color:${seatsColor(pct)}">${e.registeredCount}/${e.totalSeats}</div></div>
+        <div class="event-info-card"><div class="event-info-label">Deadline</div><div class="event-info-val">${fmtDate(e.registrationDeadline)}</div></div>
+        <div class="event-info-card"><div class="event-info-label">Organizer</div><div class="event-info-val">${e.organizer?.name || 'N/A'}</div></div>
+      </div>
+      <div style="margin-top:1.75rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        ${actionBtn}
+        <a class="btn-outline" href="events.html" style="padding:11px 20px">← Back to Events</a>
+        ${e.leaderboardEnabled ? `<a class="btn-sm btn-accent" href="dashboard.html?tab=leaderboard&event=${e.id}">View Leaderboard</a>` : ''}
+      </div>
+    </div>
+  </div>`
+}
+
+async function registerEvent(eventId) {
+  if (!getUser()) { window.location.href = 'login.html'; return }
+  try {
+    await POST(`/registrations/events/${eventId}`)
+    toast('Registration successful! Check your email for QR code 🎫', 'ok')
+    await loadMyRegs()
+    const e = await GET('/events/public/' + eventId)
+    renderDetail(e)
+  } catch(e) {
+    toast(e.message || 'Registration failed', 'err')
+  }
+}
+
+async function cancelReg(eventId) {
+  if (!confirm('Cancel your registration?')) return
+  try {
+    await DELETE(`/registrations/events/${eventId}`)
+    toast('Registration cancelled', 'ok')
+    await loadMyRegs()
+    const e = await GET('/events/public/' + eventId)
+    renderDetail(e)
+  } catch(e) {
+    toast(e.message || 'Cancel failed', 'err')
+  }
+}
+
+async function showQR(eventId, title) {
+  document.getElementById('qrModal').style.display = 'flex'
+  document.getElementById('qrContent').innerHTML   = '<div class="spin"></div>'
+  document.getElementById('qrEventName').textContent = title
+  try {
+    const data = await GET(`/registrations/events/${eventId}/qr`)
+    document.getElementById('qrContent').innerHTML =
+      `<img src="data:image/png;base64,${data.qrBase64}" alt="QR Code" style="width:220px;height:220px"/>`
+  } catch(e) {
+    document.getElementById('qrContent').innerHTML = `<p style="color:var(--red);font-size:.85rem">${e.message}</p>`
+  }
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('qrModal'))
+    document.getElementById('qrModal').style.display = 'none'
+}
+
+init()
+</script>
+</body>
+</html>

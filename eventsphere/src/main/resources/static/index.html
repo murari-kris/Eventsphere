@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventSphere — College Event Management</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    a.nav-btn{ display:inline-flex;align-items:center;text-decoration:none }
+    a.btn-primary,a.btn-outline{ display:inline-flex;align-items:center;text-decoration:none }
+
+    /* ── Hero Section ── */
+    .hero{
+      min-height:calc(100vh - 64px);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;
+      padding:4rem 2rem;position:relative;overflow:hidden;
+    }
+    .hero-glow{
+      position:absolute;width:700px;height:700px;border-radius:50%;
+      background:radial-gradient(circle,rgba(124,110,245,.1) 0%,transparent 70%);
+      top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;
+    }
+    .hero-tag{
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(124,110,245,.12);border:1px solid rgba(124,110,245,.3);
+      padding:6px 18px;border-radius:999px;font-size:.8rem;color:var(--accent);
+      margin-bottom:1.5rem;font-weight:500;animation:fadeIn .5s ease;
+    }
+    .hero h1{
+      font-family:var(--fh);font-size:clamp(2.8rem,6vw,5.5rem);
+      font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:1.5rem;
+      animation:fadeIn .6s ease .1s both;
+    }
+    .hero h1 span{ color:var(--accent) }
+    .hero p{
+      font-size:1.1rem;color:var(--muted);max-width:540px;line-height:1.8;
+      margin-bottom:2.5rem;animation:fadeIn .6s ease .2s both;
+    }
+    .hero-btns{ display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeIn .6s ease .3s both }
+    .hero-btns .btn-primary{ padding:13px 30px;font-size:1rem }
+    .hero-btns .btn-outline{ padding:13px 30px;font-size:1rem }
+    .hero-stats{
+      display:flex;gap:3rem;margin-top:5rem;padding-top:3rem;
+      border-top:1px solid var(--border);animation:fadeIn .6s ease .4s both;
+    }
+    .stat-num{ font-family:var(--fh);font-size:2rem;font-weight:800 }
+    .stat-label{ font-size:.8rem;color:var(--muted);margin-top:4px }
+
+    /* ── Feature Cards ── */
+    .feature-banner-wrapper {
+      width: 100%;
+      height: 170px;
+      overflow: hidden;
+      position: relative;
+    }
+    .feature-banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(1.1) brightness(0.85);
+      transition: transform 0.5s ease;
+    }
+    .card:hover .feature-banner-img {
+      transform: scale(1.06);
+    }
+    .feature-overlay-glow {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 40%, rgba(28, 28, 37, 0.95));
+      pointer-events: none;
+    }
+    
+    /* Live Event Badge */
+    .live-indicator {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(242, 95, 92, 0.9);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+    }
+
+    /* ── Profile Dropdown Styling ── */
+    .user-menu-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      background: #1c1c25;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 160px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: none;
+      flex-direction: column;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .dropdown-menu.show {
+      display: flex;
+    }
+    .dropdown-item {
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      color: var(--text);
+      text-decoration: none;
+      text-align: left;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .dropdown-item.logout-btn {
+      color: #f25f5c;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Dynamic System Toasts ── */
+    #toastBox {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 9999;
+    }
+    .toast {
+      background: #252533;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      font-size: 0.85rem;
+      font-weight: 500;
+      animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    .toast.toast-error { border-left-color: #f25f5c; }
+    .toast.toast-success { border-left-color: #3ecf8e; }
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media(max-width:600px){ .hero-stats{gap:1.5rem} .hero h1{letter-spacing:-1px} }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-logo" href="index.html">Event<span>Sphere</span></a>
+
+  <div class="nav-links">
+    <a class="nav-btn active" href="index.html">Home</a>
+    <a class="nav-btn"       href="events.html">Events</a>
+
+    <div id="guestNav" style="display:flex;gap:8px;margin-left:8px">
+      <a class="btn-outline" href="login.html">Log in</a>
+      <a class="btn-primary" href="register.html">Sign up</a>
+    </div>
+
+    <div id="userNav" style="display:none">
+      <div class="user-menu-wrapper">
+        <div class="user-pill" id="profilePill" style="cursor:pointer">
+          <div class="avatar" id="navAvatar">U</div>
+          <span id="navName"  style="font-size:.85rem;font-weight:500">User</span>
+          <span class="role-badge" id="navRole">STUDENT</span>
+        </div>
+        
+        <div class="dropdown-menu" id="dropdownMenu">
+          <a class="dropdown-item" href="dashboard.html">Dashboard</a>
+          <button class="dropdown-item logout-btn" id="logoutAction">Log Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div id="toastBox"></div>
+
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-tag">🎓 The Ultimate College Event Hub</div>
+  <h1>Your campus life,<br/><span>all in one place</span></h1>
+  <p>Discover exciting campus activities, register instantly, and manage your participations effortlessly from one simple dashboard.</p>
+  <div class="hero-btns">
+    <a class="btn-primary" href="events.html">Explore Events →</a>
+    <a class="btn-outline" href="register.html">Create Account</a>
+  </div>
+  <div class="hero-stats">
+    <div style="text-align:center"><div class="stat-num">Easy</div><div class="stat-label">Registration</div></div>
+    <div style="text-align:center"><div class="stat-num">Fast</div><div class="stat-label">QR Entry</div></div>
+    <div style="text-align:center"><div class="stat-num">Auto</div><div class="stat-label">PDF Certificates</div></div>
+  </div>
+</section>
+
+<div class="section" style="padding-top:0; padding-bottom:2rem;">
+  <div style="margin-bottom:2.5rem">
+    <div class="section-tag">Explore</div>
+    <div class="section-title">Featured Events</div>
+    <div class="section-sub">Join the most popular events happening on campus this week</div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card" data-event-id="evt_001" data-max-seats="150" data-base-seats="142">
+      <div class="feature-banner-wrapper">
+        <div class="live-indicator"><span class="live-dot"></span>LIVE SCORES</div>
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80" alt="Students Coding">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span class="cat-badge cat-HACKATHON">Hackathon</span>
+          <span class="tag-sm status-CONFIRMED status-label-text">Spots Available</span>
+        </div>
+        <div class="card-title">ByteCraft 2026: 24-Hour Hackathon</div>
+        <div class="card-meta">
+          <div class="meta-item">📅 May 15, 09:00 AM</div>
+          <div class="meta-item">📍 Advanced Coding Lab 3</div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Seats Filled</span>
+          <strong class="seat-counter-text">142 / 150</strong>
+        </div>
+        <div class="seats-bar" style="margin:0 0 1rem 0;">
+          <div class="seats-fill position-bar" style="width: 94%; background:var(--accent);"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:0.85rem; font-weight:700; color:var(--green);">Free Entry</span>
+        <button class="btn-sm btn-accent reg-action-btn">Register Now</button>
+      </div>
+    </div>
+
+    <div class="card" data-event-id="evt_002" data-max-seats="60" data-base-seats="58">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80" alt="AI Concept Design">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span class="cat-badge cat-WORKSHOP">Workshop</span>
+          <span class="tag-sm status-WAITLISTED status-label-text">Almost Full</span>
+        </div>
+        <div class="card-title">Generative AI &amp; Chatbot Bootcamp</div>
+        <div class="card-meta">
+          <div class="meta-item">📅 May 18, 02:00 PM</div>
+          <div class="meta-item">📍 Main Seminar Auditorium</div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Seats Filled</span>
+          <strong class="seat-counter-text">58 / 60</strong>
+        </div>
+        <div class="seats-bar" style="margin:0 0 1rem 0;">
+          <div class="seats-fill position-bar" style="width: 96%; background:var(--green);"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:0.85rem; font-weight:700; color:var(--text);">Certificate Included</span>
+        <button class="btn-sm btn-accent reg-action-btn">Register Now</button>
+      </div>
+    </div>
+
+    <div class="card" data-event-id="evt_003" data-max-seats="500" data-base-seats="310">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80" alt="Cultural Festival Lights">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span class="cat-badge cat-CULTURAL">Cultural</span>
+          <span class="tag-sm status-CONFIRMED status-label-text">Tickets Open</span>
+        </div>
+        <div class="card-title">Symphony '26: Annual Talent Fest</div>
+        <div class="card-meta">
+          <div class="meta-item">📅 May 22, 05:30 PM</div>
+          <div class="meta-item">📍 Open Air Theater (OAT)</div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Tickets Taken</span>
+          <strong class="seat-counter-text">310 / 500</strong>
+        </div>
+        <div class="seats-bar" style="margin:0 0 1rem 0;">
+          <div class="seats-fill position-bar" style="width: 62%; background:var(--pink);"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:0.85rem; font-weight:700; color:var(--amber);">Pass Required</span>
+        <button class="btn-sm btn-accent reg-action-btn">Register Now</button>
+      </div>
+    </div>
+
+    <div class="card" data-event-id="evt_004" data-max-seats="120" data-base-seats="85">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80" alt="UX Design Layout">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span class="cat-badge cat-WORKSHOP">Design</span>
+          <span class="tag-sm status-CONFIRMED status-label-text">Open</span>
+        </div>
+        <div class="card-title">UI/UX Masterclass: Designing Apps</div>
+        <div class="card-meta">
+          <div class="meta-item">📅 May 25, 11:00 AM</div>
+          <div class="meta-item">📍 New Media Design Lab</div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Seats Filled</span>
+          <strong class="seat-counter-text">85 / 120</strong>
+        </div>
+        <div class="seats-bar" style="margin:0 0 1rem 0;">
+          <div class="seats-fill position-bar" style="width: 70%; background:var(--accent);"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:0.85rem; font-weight:700; color:var(--green);">Free Entry</span>
+        <button class="btn-sm btn-accent reg-action-btn">Register Now</button>
+      </div>
+    </div>
+
+    <div class="card" data-event-id="evt_005" data-max-seats="32" data-base-seats="30">
+      <div class="feature-banner-wrapper">
+        <div class="live-indicator"><span class="live-dot"></span>LIVE STREAM</div>
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80" alt="Esports Gaming Set">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span class="cat-badge cat-CULTURAL">Gaming</span>
+          <span class="tag-sm status-WAITLISTED status-label-text">Filling Fast</span>
+        </div>
+        <div class="card-title">Campus Gaming Arena Tournament</div>
+        <div class="card-meta">
+          <div class="meta-item">📅 May 28, 04:00 PM</div>
+          <div class="meta-item">📍 Student Indoor Arena</div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Teams Registered</span>
+          <strong class="seat-counter-text">30 / 32</strong>
+        </div>
+        <div class="seats-bar" style="margin:0 0 1rem 0;">
+          <div class="seats-fill position-bar" style="width: 93%; background:var(--pink);"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:0.85rem; font-weight:700; color:var(--amber);">Entry Pass</span>
+        <button class="btn-sm btn-accent reg-action-btn">Register Now</button>
+      </div>
+    </div>
+
+    <div class="card" data-event-id="evt_006" data-max-seats="25" data-base-seats="12">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1474631245892-7472d6f4c932?auto=format&fit=crop&w=600&q=80" alt="Business Presentation">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span class="cat-badge cat-HACKATHON">Business</span>
+          <span class="tag-sm status-CONFIRMED status-label-text">Open</span>
+        </div>
+        <div class="card-title">Startup Pitch Fest '26: Final Call</div>
+        <div class="card-meta">
+          <div class="meta-item">📅 June 02, 10:00 AM</div>
+          <div class="meta-item">📍 Campus Incubation Hub</div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Slots Remaining</span>
+          <strong class="seat-counter-text">12 / 25</strong>
+        </div>
+        <div class="seats-bar" style="margin:0 0 1rem 0;">
+          <div class="seats-fill position-bar" style="width: 48%; background:var(--green);"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:0.85rem; font-weight:700; color:var(--text)">Cash Prizes</span>
+        <button class="btn-sm btn-accent reg-action-btn">Register Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div style="text-align:center;margin-bottom:2.5rem">
+    <div class="section-tag">Features</div>
+    <div class="section-title">How it makes your life easier</div>
+  </div>
+  <div class="grid-3">
+    <div class="card" style="border-color:rgba(124,110,245,.2)">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80" alt="Easy Registration Process">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.5rem">
+        <div style="font-family:var(--fh);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;color:var(--text)">1-Click Registration</div>
+        <div style="font-size:.85rem;color:var(--muted);line-height:1.7">Browse workshops, tech events, or culturals and secure your spot instantly. No messy forms or physical paperwork required.</div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:rgba(62,207,142,.2)">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1595079676339-1534801ad6cf?auto=format&fit=crop&w=600&q=80" alt="QR Code Scanning">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.5rem">
+        <div style="font-family:var(--fh);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;color:var(--text)">Quick QR-Code Entry</div>
+        <div style="font-size:.85rem;color:var(--muted);line-height:1.7">Get a personal secure QR code for every registered event. Simply get it scanned at the venue entrance to mark your attendance.</div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:rgba(245,166,35,.2)">
+      <div class="feature-banner-wrapper">
+        <img class="feature-banner-img" src="https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=600&q=80" alt="Certificate Presentation">
+        <div class="feature-overlay-glow"></div>
+      </div>
+      <div class="card-body" style="padding:1.5rem">
+        <div style="font-family:var(--fh);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;color:var(--text)">Instant PDF Certificates</div>
+        <div style="font-size:.85rem;color:var(--muted);line-height:1.7">No more chasing organizers! Once the event finishes, your personalized participation certificate is automatically created and sent to your email.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    // ── Global Custom Toast Dispatcher ──
+    function showToast(message, type = 'success') {
+      const box = document.getElementById('toastBox');
+      if (!box) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      box.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    // ── Authentication Check ──
+    let currentUser = null;
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      try {
+        currentUser = JSON.parse(raw);
+        document.getElementById('guestNav').style.display = 'none';
+        document.getElementById('userNav').style.display  = 'block';
+        document.getElementById('navAvatar').textContent  = (currentUser.name || 'U').charAt(0).toUpperCase();
+        document.getElementById('navName').textContent    = currentUser.name || 'User';
+        const rb = document.getElementById('navRole');
+        rb.textContent = currentUser.role || 'STUDENT';
+        rb.className   = 'role-badge role-' + (currentUser.role || 'STUDENT');
+      } catch (e) { /* corrupted token fallback */ }
+    }
+
+    // ── Navbar Profile Dropdown Logic ──
+    const profilePill = document.getElementById('profilePill');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    if (profilePill && dropdownMenu) {
+      profilePill.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+      });
+      document.addEventListener('click', function () {
+        dropdownMenu.classList.remove('show');
+      });
+    }
+
+    // ── Logout Action Handler ──
+    const logoutAction = document.getElementById('logoutAction');
+    if (logoutAction) {
+      logoutAction.addEventListener('click', function () {
+        localStorage.removeItem('user');
+        window.location.reload();
+      });
+    }
+
+    // ── 1-Click Registration Engine Implementation ──
+    let registrations = JSON.parse(localStorage.getItem('user_registrations')) || [];
+
+    function syncUIState() {
+      const cards = document.querySelectorAll('.card[data-event-id]');
+      
+      cards.forEach(card => {
+        const eventId = card.getAttribute('data-event-id');
+        const maxSeats = parseInt(card.getAttribute('data-max-seats'), 10);
+        const baseSeats = parseInt(card.getAttribute('data-base-seats'), 10);
+        
+        // Dynamic seat counter calculation
+        const localSignups = registrations.filter(r => r.eventId === eventId).length;
+        const totalLiveSeats = baseSeats + localSignups;
+        
+        const counterText = card.querySelector('.seat-counter-text');
+        const fillBar = card.querySelector('.position-bar');
+        const actionBtn = card.querySelector('.reg-action-btn');
+        const badgeLabel = card.querySelector('.status-label-text');
+        
+        if (counterText) counterText.textContent = `${totalLiveSeats} / ${maxSeats}`;
+        if (fillBar) fillBar.style.width = `${(totalLiveSeats / maxSeats) * 100}%`;
+
+        // Check if the authenticated user has already claimed a slot
+        const isUserRegistered = currentUser && registrations.some(
+          r => r.userId === currentUser.email && r.eventId === eventId
+        );
+
+        if (isUserRegistered && actionBtn) {
+          actionBtn.textContent = "Registered ✓";
+          actionBtn.disabled = true;
+          actionBtn.style.opacity = "0.6";
+          actionBtn.style.cursor = "not-allowed";
+          if (badgeLabel) {
+            badgeLabel.textContent = "Secured";
+            badgeLabel.style.background = "rgba(62,207,142,.15)";
+            badgeLabel.style.color = "#3ecf8e";
+          }
+        }
+      });
+    }
+
+    // Initialize UI adjustments immediately on DOM load
+    syncUIState();
+
+    // Catch dynamic click actions via main event delegation loop
+    document.body.addEventListener('click', function (e) {
+      if (!e.target.classList.contains('reg-action-btn')) return;
+      e.preventDefault();
+
+      // Rule 1: User Check
+      if (!currentUser || !currentUser.email) {
+        showToast("Authentication required! Please log in first.", "error");
+        return;
+      }
+
+      const button = e.target;
+      const card = button.closest('.card');
+      const eventId = card.getAttribute('data-event-id');
+      const eventTitle = card.querySelector('.card-title').textContent;
+
+      // Rule 2: State Syncing & Double-Registration Guard
+      const alreadySaved = registrations.some(
+        r => r.userId === currentUser.email && r.eventId === eventId
+      );
+
+      if (alreadySaved) {
+        showToast("You have already booked a slot for this event profile.", "error");
+        return;
+      }
+
+      // Add to simulated local storage database collection records
+      registrations.push({
+        userId: currentUser.email,
+        eventId: eventId,
+        timestamp: new Date().toISOString()
+      });
+      
+      localStorage.setItem('user_registrations', JSON.stringify(registrations));
+
+      // Trigger UI updates instantly without reloading
+      syncUIState();
+      showToast(`Success! You have registered for ${eventTitle}.`, "success");
+    });
+  })();
+</script>
+
+</body>
+</html>

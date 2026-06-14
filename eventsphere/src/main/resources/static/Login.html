@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login — EventSphere</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<script src="/js/app.js"></script>
+<script>
+  /* Redirect if already logged in */
+  if (getUser()) window.location.href = 'dashboard.html'
+  buildNavbar('')
+</script>
+
+<div id="toastBox"></div>
+
+<div class="form-page">
+  <div class="form-glow"></div>
+  <div class="form-card">
+    <div class="form-logo">Event<span>Sphere</span></div>
+    <div class="form-sub">Welcome back — sign in to continue</div>
+
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input class="form-input" type="email" id="loginEmail" placeholder="you@college.edu" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="loginPassword" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password"/>
+    </div>
+    <div id="loginErr" style="color:var(--red);font-size:.82rem;margin-top:-.5rem;margin-bottom:.75rem;display:none"></div>
+
+    <button class="btn-full" id="loginBtn" onclick="doLogin()">Sign In</button>
+
+    <div class="form-switch">No account? <a href="register.html">Sign up free</a></div>
+
+    <div class="form-divider">quick demo access</div>
+    <div class="demo-grid">
+      <button class="demo-btn" onclick="demoLogin('student@eventsphere.com','password123')">👨‍🎓 Student</button>
+      <button class="demo-btn" onclick="demoLogin('organizer@eventsphere.com','password123')">🎪 Organizer</button>
+      <button class="demo-btn" onclick="demoLogin('judge@eventsphere.com','password123')">⚖️ Judge</button>
+      <button class="demo-btn" onclick="demoLogin('admin@eventsphere.com','password123')">🔑 Admin</button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim()
+  const pass  = document.getElementById('loginPassword').value
+  const errEl = document.getElementById('loginErr')
+  const btn   = document.getElementById('loginBtn')
+  errEl.style.display = 'none'
+  if (!email || !pass) {
+    errEl.textContent = 'Please fill all fields'
+    errEl.style.display = 'block'
+    return
+  }
+  btn.textContent = 'Signing in…'
+  btn.disabled    = true
+  try {
+    const data = await POST('/auth/login', { email, password: pass })
+    localStorage.setItem('token', data.accessToken)
+    localStorage.setItem('user',  JSON.stringify(data))
+    toast('Welcome back, ' + data.name + '! 👋', 'ok')
+    setTimeout(() => { window.location.href = 'dashboard.html' }, 600)
+  } catch(e) {
+    errEl.textContent   = e.message || 'Invalid credentials'
+    errEl.style.display = 'block'
+  } finally {
+    btn.textContent = 'Sign In'
+    btn.disabled    = false
+  }
+}
+
+function demoLogin(email, pass) {
+  document.getElementById('loginEmail').value    = email
+  document.getElementById('loginPassword').value = pass
+  doLogin()
+}
+</script>
+</body>
+</html>

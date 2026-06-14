@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard — EventSphere</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* EventSphere Premium Design Token Palette Matrix */
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #161925;
+      --border-color: #2e3244;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-primary: #7c6ef5;
+      --accent-success: #3ecf8e;
+      --accent-warning: #f5a623;
+      --accent-danger: #f25f5c;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 2rem;
+    }
+
+    .section-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .section-tag {
+      color: var(--accent-primary);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .section-sub {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Ticket Grid Matrix */
+    .tickets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2rem;
+    }
+
+    /* Premium Glassmorphism Ticket Design */
+    .ticket-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .ticket-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(124, 110, 245, 0.4);
+    }
+
+    /* Decorative Ticket Stub Cutouts */
+    .ticket-card::before, .ticket-card::after {
+      content: '';
+      position: absolute;
+      bottom: 135px; /* Adjusted to fit the dual button layout safely */
+      width: 20px;
+      height: 20px;
+      background: var(--bg-main);
+      border-radius: 50%;
+      z-index: 2;
+    }
+    .ticket-card::before { left: -10px; }
+    .ticket-card::after { right: -10px; }
+
+    .ticket-divider {
+      border-top: 2px dashed var(--border-color);
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .badge-confirmed { background: rgba(62, 207, 142, 0.15); color: var(--accent-success); }
+    .badge-waitlisted { background: rgba(245, 166, 35, 0.15); color: var(--accent-warning); }
+
+    .ticket-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0.75rem 0;
+      line-height: 1.4;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .button-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-view-qr {
+      width: 100%;
+      background: linear-gradient(135deg, #7c6ef5, #6355d9);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-certificate {
+      width: 100%;
+      background: linear-gradient(135deg, #3ecf8e, #2ea44f);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-view-qr:hover, .btn-certificate:hover {
+      opacity: 0.9;
+    }
+
+    /* Elegant Modal Popout Overlay Grid */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 7, 13, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 380px;
+      padding: 2rem;
+      border-radius: 24px;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: scale(1);
+    }
+
+    .qr-container {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 16px;
+      display: inline-block;
+      margin: 1.5rem 0;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .qr-container img {
+      display: block;
+      width: 200px;
+      height: 200px;
+    }
+
+    .close-modal-btn {
+      background: rgba(248, 250, 252, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 1rem;
+      transition: background 0.2s;
+    }
+
+    .close-modal-btn:hover {
+      background: rgba(248, 250, 252, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <script src="shared/api.js"></script>
+  <script>
+    // ROLE MATRIX GUARD: If a staff member reaches this route, intercept and redirect instantly
+    const userSession = JSON.parse(localStorage.getItem('user')) || null;
+    if (userSession && (userSession.role === 'VOLUNTEER' || userSession.role === 'ADMIN')) {
+      window.location.replace('scanner.html');
+    }
+
+    if (typeof buildNavbar === 'function') buildNavbar('dashboard');
+  </script>
+
+  <div class="section-header">
+    <div class="section-tag" id="dashboardUserTag">Access Terminal</div>
+    <div class="section-title">Your Verified Entry Passes & Certificates</div>
+    <div class="section-sub">Present your entry codes at the gate terminal. Once checked in, your custom completion certificates will unlock instantly below.</div>
+  </div>
+
+  <div class="tickets-grid" id="ticketsContainer"></div>
+
+  <div class="modal-overlay" id="qrModal" onclick="closeQrModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;" id="modalEventTitle">Event Pass</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">Show this unique code to the gate volunteer</div>
+      
+      <div class="qr-container">
+        <img id="modalQrImage" src="" alt="Live Secure Entry Pass QR Representation"/>
+      </div>
+      
+      <div style="font-family: monospace; font-size: 0.7rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; word-break: break-all; max-height: 50px; overflow-y: auto;" id="modalTokenString"></div>
+      
+      <button class="close-modal-btn" onclick="closeQrModal()">Dismiss Pass</button>
+    </div>
+  </div>
+
+  <script>
+    // System Catalog Profile References
+    const catalogEvents = {
+      'evt_001': { title: "ByteCraft 2026: 24-Hour Hackathon", category: "HACKATHON", date: "May 15, 2026", time: "09:00 AM", venue: "Advanced Coding Lab 3", limit: 150 },
+      'evt_002': { title: "Generative AI & Chatbot Bootcamp", category: "WORKSHOP", date: "May 18, 2026", time: "02:00 PM", venue: "Main Seminar Auditorium", limit: 60 },
+      'evt_003': { title: "Symphony '26: Annual Talent Fest", category: "CULTURAL", date: "May 22, 2026", time: "05:30 PM", venue: "Open Air Theater (OAT)", limit: 500 },
+      'evt_004': { title: "UI/UX Masterclass: Designing Apps", category: "WORKSHOP", date: "May 25, 2026", time: "11:00 AM", venue: "New Media Design Lab", limit: 120 },
+      'evt_005': { title: "Campus Gaming Arena Tournament", category: "CULTURAL", date: "May 28, 2026", time: "04:00 PM", venue: "Student Indoor Arena", limit: 32 },
+      'evt_006': { title: "Startup Pitch Fest '26: Final Call", category: "HACKATHON", date: "June 02, 2026", time: "10:00 AM", venue: "Campus Incubation Hub", limit: 25 }
+    };
+
+    // Parse session data securely from active browser memory contexts
+    const currentUser = JSON.parse(localStorage.getItem('user')) || null;
+    const globalRegistrations = JSON.parse(localStorage.getItem('user_registrations')) || [];
+
+    function displayPassDashboard() {
+      const container = document.getElementById('ticketsContainer');
+      if (!container) return;
+
+      // Force verification layout validation
+      if (!currentUser || !currentUser.email) {
+        container.innerHTML = `
+          <div class="empty" style="grid-column:1/-1; text-align:center; padding:4rem 0;">
+            <div style="font-size:3.5rem; margin-bottom:1rem;">🔒</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#fff;">Dashboard Terminal Locked</div>
+            <p style="font-size:.9rem; color:var(--text-muted); margin-top:6px; max-width:400px; margin-left:auto; margin-right:auto;">
+              Please authenticate into your student workspace to parse generated access logs.
+            </p>
+            <a href="login.html" style="display:inline-block; margin-top:15px; background:var(--accent-primary); color:#fff; text-decoration:none; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.88rem;">Log In to Terminal</a>
+          </div>`;
+        return;
+      }
+
+      // Update Header Metadata Info
+      document.getElementById('dashboardUserTag').textContent = `${currentUser.name || 'Student'}'s Access Terminal`;
+
+      // Filter and capture global sync indexes scoped to this user profile
+      const userPasses = globalRegistrations.filter(r => r.userId === currentUser.email);
+
+      if (userPasses.length === 0) {
+        container.innerHTML = `
+          <div class="empty" style="grid-column:1/-1; text-align:center; padding:4rem 0;">
+            <div style="font-size:3.5rem; margin-bottom:1rem;">🎟️</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#fff;">No Active Passes Found</div>
+            <p style="font-size:.9rem; color:var(--text-muted); margin-top:6px;">You haven't claimed entry slots for any dynamic campus experiences yet.</p>
+            <a href="events.html" style="display:inline-block; margin-top:12px; border:1px solid var(--border-color); color:var(--text-main); text-decoration:none; padding:8px 20px; border-radius:8px; font-weight:600; font-size:0.85rem; background:rgba(255,255,255,0.02)">Browse Events Hub</a>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = userPasses.map(pass => {
+        // Resolve match against master configuration definitions
+        const details = catalogEvents[pass.eventId] || {
+          title: "Special Campus Reservation",
+          category: "EVENT",
+          date: "TBD",
+          time: "TBD",
+          venue: "Main Campus Arena",
+          limit: 100
+        };
+
+        // Determine real dynamic placement inside the signup timeline stack
+        const signupOrderIndex = globalRegistrations.filter(r => r.eventId === pass.eventId)
+          .findIndex(r => r.userId === currentUser.email && r.timestamp === pass.timestamp);
+        
+        const isWaitlisted = (signupOrderIndex !== -1) && (signupOrderIndex >= details.limit);
+        const ticketStatus = isWaitlisted ? "WAITLISTED" : "CONFIRMED";
+        const statusClass = isWaitlisted ? 'badge-waitlisted' : 'badge-confirmed';
+
+        // Safe client side cryptographic token computation (Base64 signature string construction)
+        const rawPayload = `eventId=${pass.eventId}&userId=${currentUser.email}&stamp=${pass.timestamp}`;
+        const computedToken = btoa(rawPayload);
+
+        return `
+          <div class="ticket-card" data-pass-id="${pass.eventId}">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge" style="background: rgba(124,110,245,0.15); color: var(--accent-primary); font-size:0.65rem;">${details.category}</span>
+                <span class="badge ${statusClass}">${ticketStatus}</span>
+              </div>
+              <h3 class="ticket-title">${details.title}</h3>
+              <div class="meta-row">
+                <div class="meta-item"><span>📅</span> ${details.date}</div>
+                <div class="meta-item"><span>🕒</span> ${details.time}</div>
+                <div class="meta-item"><span>📍</span> ${details.venue}</div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="ticket-divider"></div>
+              <div class="button-stack">
+                <button class="btn-view-qr" onclick="launchQrPassModal('${details.title.replace(/'/g, "\\'")}', '${computedToken}')">
+                  <span style="font-size: 1.1rem;">📱</span> Display Entry Pass
+                </button>
+                <button class="btn-certificate" onclick="downloadCertificate('${pass.eventId}')">
+                  <span style="font-size: 1.1rem;">🎓</span> Claim Certificate
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Modal Controller Window Operations Matrix
+     */
+    function launchQrPassModal(title, token) {
+      document.getElementById('modalEventTitle').textContent = title;
+      document.getElementById('modalTokenString').textContent = `Payload Token: ${token}`;
+      
+      const backendQrUrl = `http://localhost:8085/api/qr/generate?token=${encodeURIComponent(token)}`;
+      
+      const imgElement = document.getElementById('modalQrImage');
+      imgElement.src = backendQrUrl;
+
+      imgElement.onerror = function() {
+        this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%231f2335'/><text x='35' y='105' fill='%23f25f5c' font-family='sans-serif' font-size='12' font-weight='bold'>Backend Engine Offline</text></svg>";
+      };
+
+      document.getElementById('qrModal').classList.add('active');
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').classList.remove('active');
+    }
+
+    /**
+     * 📥 NEW: Option B API Dynamic Connection Handler
+     * Contacts your Spring Boot backend on port 8085 to securely generate/download files.
+     */
+    async function downloadCertificate(eventId) {
+      if (!currentUser || !currentUser.email) {
+        alert("🔒 Please log in to download certificates.");
+        return;
+      }
+
+      const userId = currentUser.email;
+      const backendUrl = `http://localhost:8085/api/tickets/download-certificate?userId=${encodeURIComponent(userId)}&eventId=${encodeURIComponent(eventId)}`;
+
+      try {
+        const response = await fetch(backendUrl);
+
+        if (response.status === 403) {
+          alert("⚠️ Access Denied: You have not been marked as 'Attended' at the gate terminal for this event yet!");
+          return;
+        }
+
+        if (!response.ok) {
+          alert("❌ Something went wrong while generating your certificate. Please contact support.");
+          return;
+        }
+
+        // Parse file streaming byte streams into local download references
+        const blob = await response.blob();
+        const downloadLink = document.createElement('a');
+        downloadLink.href = window.URL.createObjectURL(blob);
+        downloadLink.download = `Certificate_${eventId}.pdf`;
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+      } catch (error) {
+        console.error("Connection fault:", error);
+        alert("❌ Cannot establish connection with the backend engine server. Make sure it is running on port 8085!");
+      }
+    }
+
+    // Process immediate workspace view render sequence instructions
+    displayPassDashboard();
+  </script>
+</body>
+</html>
