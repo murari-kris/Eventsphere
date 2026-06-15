@@ -3,7 +3,9 @@
    Include in every page: <script src="../shared/api.js"></script>
 ============================================================ */
 
-const API = 'http://localhost:8085/api'
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8085/api'
+  : 'https://eventsphere-e553.onrender.com/api';
 
 /* ── HTTP helper ── */
 async function http(method, path, body) {
