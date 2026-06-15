@@ -1,6 +1,5 @@
 /* ============================================================
-   EventSphere — Shared API & Utility helpers
-   Include in every page: <script src="../shared/api.js"></script>
+   EventSphere — Shared API, Authentication & Engine Helpers
 ============================================================ */
 
 const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -34,39 +33,68 @@ function getUser() {
 
 function doLogout() {
   localStorage.clear()
-  window.location.href = 'index.html'
+  window.location.href = '/'; // FIXED: Route cleanly back to root routing index instead of static file
 }
 
 function requireAuth() {
-  if (!getUser()) { window.location.href = 'login.html'; return false }
+  if (!getUser()) { window.location.href = 'login'; return false } // FIXED: Changed 'login.html' to clean 'login' route
   return true
 }
 
-/* ── Navbar builder ── */
+/* ── Navbar builder with integrated profile dropdown logic ── */
 function buildNavbar(activePage) {
   const user = getUser()
   const nav = document.createElement('nav')
   nav.className = 'navbar'
   nav.innerHTML = `
-    <a class="nav-logo" href="index.html">Event<span>Sphere</span></a>
+    <a class="nav-logo" href="/">Event<span>Sphere</span></a>
     <div class="nav-links">
-      <a class="nav-btn${activePage==='home'?' active':''}" href="index.html">Home</a>
+      <a class="nav-btn${activePage==='home'?' active':''}" href="/">Home</a>
       <a class="nav-btn${activePage==='events'?' active':''}" href="events.html">Events</a>
       ${user ? `
-        <div class="user-pill" onclick="window.location.href='dashboard.html'">
-          <div class="avatar">${user.name?.charAt(0).toUpperCase()||'U'}</div>
-          <span style="font-size:.85rem;font-weight:500">${user.name}</span>
-          <span class="role-badge role-${user.role}">${user.role}</span>
+        <div class="user-menu-wrapper" style="position: relative; display: inline-block;">
+          <div class="user-pill" id="profilePill" style="cursor:pointer">
+            <div class="avatar">${user.name?.charAt(0).toUpperCase()||'U'}</div>
+            <span style="font-size:.85rem;font-weight:500">${user.name || 'User'}</span>
+            <span class="role-badge role-${user.role || 'STUDENT'}">${user.role || 'STUDENT'}</span>
+          </div>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <a class="dropdown-item" href="dashboard.html">Dashboard</a>
+            <button class="dropdown-item logout-btn" id="logoutAction">Log Out</button>
+          </div>
         </div>
       ` : `
-        <a class="btn-outline" href="login.html" style="margin-left:8px">Log in</a>
-        <a class="btn-primary" href="register.html">Sign up</a>
+        <a class="btn-outline" href="login" style="margin-left:8px">Log in</a>
+        <a class="btn-primary" href="register">Sign up</a>
       `}
     </div>`
   document.body.prepend(nav)
+
+  // Attach interactive click listeners securely after creation
+  if (user) {
+    const profilePill = document.getElementById('profilePill');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const logoutAction = document.getElementById('logoutAction');
+
+    if (profilePill && dropdownMenu) {
+      profilePill.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+      });
+      document.addEventListener('click', function () {
+        dropdownMenu.classList.remove('show');
+      });
+    }
+
+    if (logoutAction) {
+      logoutAction.addEventListener('click', function () {
+        doLogout();
+      });
+    }
+  }
 }
 
-/* ── Toast ── */
+/* ── System Toast Notifications ── */
 function ensureToastBox() {
   if (!document.getElementById('toastBox')) {
     const b = document.createElement('div')
@@ -78,8 +106,8 @@ function toast(msg, type = 'ok') {
   ensureToastBox()
   const box = document.getElementById('toastBox')
   const t   = document.createElement('div')
-  t.className = `toast ${type}`
-  t.innerHTML = `<span>${type === 'ok' ? '✅' : '❌'}</span> ${msg}`
+  t.className = `toast ${type === 'ok' ? 'toast-success' : 'toast-error'}`
+  t.innerHTML = msg
   box.appendChild(t)
   setTimeout(() => t.remove(), 3500)
 }
