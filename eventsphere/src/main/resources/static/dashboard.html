@@ -107,6 +107,7 @@
     }
     .badge-confirmed { background: rgba(62, 207, 142, 0.15); color: var(--accent-success); }
     .badge-waitlisted { background: rgba(245, 166, 35, 0.15); color: var(--accent-warning); }
+    .badge-attended { background: rgba(62, 207, 142, 0.25); color: #fff; border: 1px solid var(--accent-success); }
 
     .ticket-title {
       font-size: 1.25rem;
@@ -284,7 +285,7 @@
   </div>
 
   <script>
-    // System Catalog Profile References
+    // System Catalog Profile References matching your backend if-else statements perfectly
     const catalogEvents = {
       'evt_001': { title: "ByteCraft 2026: 24-Hour Hackathon", category: "HACKATHON", date: "May 15, 2026", time: "09:00 AM", venue: "Advanced Coding Lab 3", limit: 150 },
       'evt_002': { title: "Generative AI & Chatbot Bootcamp", category: "WORKSHOP", date: "May 18, 2026", time: "02:00 PM", venue: "Main Seminar Auditorium", limit: 60 },
@@ -294,14 +295,12 @@
       'evt_006': { title: "Startup Pitch Fest '26: Final Call", category: "HACKATHON", date: "June 02, 2026", time: "10:00 AM", venue: "Campus Incubation Hub", limit: 25 }
     };
 
-    // Parse session data securely from active browser memory contexts
     const currentUser = JSON.parse(localStorage.getItem('user')) || null;
 
     async function displayPassDashboard() {
       const container = document.getElementById('ticketsContainer');
       if (!container) return;
 
-      // Force verification layout validation
       if (!currentUser || !currentUser.email) {
         container.innerHTML = `
           <div class="empty" style="grid-column:1/-1; text-align:center; padding:4rem 0;">
@@ -315,93 +314,92 @@
         return;
       }
 
-      // Update Header Metadata Info
       document.getElementById('dashboardUserTag').textContent = `${currentUser.name || 'Student'}'s Access Terminal`;
 
-      try {
-        // Dynamic fetch matching database registration layers
-        const response = await fetch(`${API}/tickets/user/${encodeURIComponent(currentUser.email)}`);
-        
-        if (!response.ok) {
-          throw new Error("Failed to load registration data layers");
+      // Read registrations from local registrations array
+      const localRegistrations = JSON.parse(localStorage.getItem('user_registrations')) || [];
+      const userPasses = localRegistrations.filter(r => r.userId === currentUser.email);
+
+      if (userPasses.length === 0) {
+        container.innerHTML = `
+          <div class="empty" style="grid-column:1/-1; text-align:center; padding:4rem 0;">
+            <div style="font-size:3.5rem; margin-bottom:1rem;">🎟️</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#fff;">No Active Passes Found</div>
+            <p style="font-size:.9rem; color:var(--text-muted); margin-top:6px;">You haven't claimed entry slots for any dynamic campus experiences yet.</p>
+            <a href="/" style="display:inline-block; margin-top:12px; border:1px solid var(--border-color); color:var(--text-main); text-decoration:none; padding:8px 20px; border-radius:8px; font-weight:600; font-size:0.85rem; background:rgba(255,255,255,0.02)">Browse Events Hub</a>
+          </div>`;
+        return;
+      }
+
+      // Generate the layout cleanly
+      let HTMLOutput = '';
+
+      for (const pass of userPasses) {
+        const details = catalogEvents[pass.eventId] || {
+          title: "Special Campus Reservation",
+          category: "EVENT",
+          date: "TBD",
+          time: "TBD",
+          venue: "Main Campus Arena"
+        };
+
+        let ticketStatus = pass.status || "CONFIRMED";
+        let statusClass = (ticketStatus === 'WAITLISTED') ? 'badge-waitlisted' : 'badge-confirmed';
+
+        // LIVE MATRIX SYNC: Check if backend database records this user as ATTENDED
+        try {
+          // We check the download endpoint with a HEAD or short test request to see if it's 403 or 200
+          const checkResponse = await fetch(`${API}/tickets/download-certificate?userId=${encodeURIComponent(currentUser.email)}&eventId=${encodeURIComponent(pass.eventId)}`);
+          if (checkResponse.ok) {
+            ticketStatus = "ATTENDED";
+            statusClass = "badge-attended";
+          }
+        } catch (e) {
+          console.warn("Could not query live ledger database metrics for status sync:", e);
         }
 
-        const userPasses = await response.json();
+        // Important: Builds payload format exactly matching parseTokenPayload logic (eventId=X&userId=Y)
+        const rawPayload = `eventId=${pass.eventId}&userId=${currentUser.email}`;
+        const computedToken = btoa(rawPayload);
 
-        if (userPasses.length === 0) {
-          container.innerHTML = `
-            <div class="empty" style="grid-column:1/-1; text-align:center; padding:4rem 0;">
-              <div style="font-size:3.5rem; margin-bottom:1rem;">🎟️</div>
-              <div style="font-size:1.3rem; font-weight:700; color:#fff;">No Active Passes Found</div>
-              <p style="font-size:.9rem; color:var(--text-muted); margin-top:6px;">You haven't claimed entry slots for any dynamic campus experiences yet.</p>
-              <a href="/" style="display:inline-block; margin-top:12px; border:1px solid var(--border-color); color:var(--text-main); text-decoration:none; padding:8px 20px; border-radius:8px; font-weight:600; font-size:0.85rem; background:rgba(255,255,255,0.02)">Browse Events Hub</a>
-            </div>`;
-          return;
-        }
-
-        container.innerHTML = userPasses.map(pass => {
-          // Resolve match against master configurations or fallback data signatures
-          const details = catalogEvents[pass.eventId] || {
-            title: pass.eventTitle || "Special Campus Reservation",
-            category: pass.eventCategory || "EVENT",
-            date: "May 15, 2026",
-            time: "10:00 AM",
-            venue: pass.venue || "Main Campus Arena"
-          };
-
-          // Use data status mapping profiles from the server engine ledger directly
-          const ticketStatus = pass.status || "CONFIRMED";
-          const statusClass = (ticketStatus === 'WAITLISTED') ? 'badge-waitlisted' : 'badge-confirmed';
-
-          // Client-side cryptographic token construction matching the scanning matrix requirements
-          const rawPayload = `eventId=${pass.eventId}&userId=${currentUser.email}&stamp=${pass.id || Date.now()}`;
-          const computedToken = btoa(rawPayload);
-
-          return `
-            <div class="ticket-card" data-pass-id="${pass.eventId}">
-              <div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span class="badge" style="background: rgba(124,110,245,0.15); color: var(--accent-primary); font-size:0.65rem;">${details.category}</span>
-                  <span class="badge ${statusClass}">${ticketStatus}</span>
-                </div>
-                <h3 class="ticket-title">${details.title}</h3>
-                <div class="meta-row">
-                  <div class="meta-item"><span>📅</span> ${details.date}</div>
-                  <div class="meta-item"><span>🕒</span> ${details.time}</div>
-                  <div class="meta-item"><span>📍</span> ${details.venue}</div>
-                </div>
+        HTMLOutput += `
+          <div class="ticket-card" data-pass-id="${pass.eventId}">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge" style="background: rgba(124,110,245,0.15); color: var(--accent-primary); font-size:0.65rem;">${details.category}</span>
+                <span class="badge ${statusClass}">${ticketStatus}</span>
               </div>
-              
-              <div>
-                <div class="ticket-divider"></div>
-                <div class="button-stack">
-                  <button class="btn-view-qr" onclick="launchQrPassModal('${details.title.replace(/'/g, "\\'")}', '${computedToken}')">
-                    <span style="font-size: 1.1rem;">📱</span> Display Entry Pass
-                  </button>
-                  <button class="btn-certificate" onclick="downloadCertificate('${pass.eventId}')">
-                    <span style="font-size: 1.1rem;">🎓</span> Claim Certificate
-                  </button>
-                </div>
+              <h3 class="ticket-title">${details.title}</h3>
+              <div class="meta-row">
+                <div class="meta-item"><span>📅</span> ${details.date}</div>
+                <div class="meta-item"><span>🕒</span> ${details.time}</div>
+                <div class="meta-item"><span>📍</span> ${details.venue}</div>
               </div>
             </div>
-          `;
-        }).join('');
-
-      } catch (error) {
-        console.error("Dashboard engine sync error:", error);
-        container.innerHTML = `<div style="text-align:center;color:var(--accent-danger);padding:2rem;">❌ Failed to synchronize active verification ledger profiles.</div>`;
+            
+            <div>
+              <div class="ticket-divider"></div>
+              <div class="button-stack">
+                <button class="btn-view-qr" onclick="launchQrPassModal('${details.title.replace(/'/g, "\\'")}', '${computedToken}')">
+                  <span style="font-size: 1.1rem;">📱</span> Display Entry Pass
+                </button>
+                <button class="btn-certificate" onclick="downloadCertificate('${pass.eventId}')">
+                  <span style="font-size: 1.1rem;">🎓</span> Claim Certificate
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
       }
+
+      container.innerHTML = HTMLOutput;
     }
 
-    /**
-     * Modal Controller Window Operations Matrix
-     */
     function launchQrPassModal(title, token) {
       document.getElementById('modalEventTitle').textContent = title;
       document.getElementById('modalTokenString').textContent = `Payload Token: ${token}`;
       
       const backendQrUrl = `${API}/qr/generate?token=${encodeURIComponent(token)}`;
-      
       const imgElement = document.getElementById('modalQrImage');
       imgElement.src = backendQrUrl;
 
@@ -417,7 +415,7 @@
     }
 
     /**
-     * Contacts your Spring Boot backend securely to generate/download files.
+     * Matches exactly with GateScannerController @GetMapping("/download-certificate")
      */
     async function downloadCertificate(eventId) {
       if (!currentUser || !currentUser.email) {
@@ -437,11 +435,10 @@
         }
 
         if (!response.ok) {
-          alert("❌ Something went wrong while generating your certificate. Please contact support.");
+          alert("❌ Something went wrong while generating your certificate.");
           return;
         }
 
-        // Parse file streaming byte streams into local download references
         const blob = await response.blob();
         const downloadLink = document.createElement('a');
         downloadLink.href = window.URL.createObjectURL(blob);
@@ -453,11 +450,11 @@
 
       } catch (error) {
         console.error("Connection fault:", error);
-        alert("❌ Cannot establish connection with the backend engine server. Make sure it is currently active!");
+        alert("❌ Cannot establish connection with backend engine server.");
       }
     }
 
-    // Process immediate workspace view render sequence instructions
+    // Initialize layout
     displayPassDashboard();
   </script>
 </body>
