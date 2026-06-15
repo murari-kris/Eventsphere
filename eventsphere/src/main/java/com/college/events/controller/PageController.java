@@ -22,12 +22,12 @@ public class PageController {
 
     @GetMapping("/login")
     public ResponseEntity<Resource> loginPage() {
-        return serveStaticHtml("login.html");
+        return serveStaticHtml("Login.html");
     }
 
     @GetMapping("/register")
     public ResponseEntity<Resource> registerPage() {
-        return serveStaticHtml("register.html");
+        return serveStaticHtml("Register.html");
     }
 
     @GetMapping("/events")
