@@ -9,48 +9,38 @@ import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.awt.Color;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class CertificateService {
 
-    private static final Map<String, String> studentRegistry = new HashMap<>();
-    
-    static {
-        studentRegistry.put("krishna@gmail.com", "Krishna Murari");
-        studentRegistry.put("sona@9090gmail.com", "Sona");
-    }
-
+    // MATCHED: Accepts exactly 2 arguments to resolve the compilation discrepancy
     public byte[] generateCertificatePdf(String userEmail, String eventName) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
-        // Resolve student name dynamically
-        String resolvedStudentName = studentRegistry.getOrDefault(userEmail.trim().toLowerCase(), null);
-        if (resolvedStudentName == null) {
-            if (userEmail.contains("@")) {
-                String prefix = userEmail.split("@")[0];
-                resolvedStudentName = prefix.substring(0, 1).toUpperCase() + prefix.substring(1);
-            } else {
-                resolvedStudentName = userEmail;
-            }
+        // Dynamic Fallback Safeguard: Auto-format name from the email string cleanly
+        String resolvedStudentName = "";
+        if (userEmail != null && userEmail.contains("@")) {
+            String prefix = userEmail.split("@")[0];
+            resolvedStudentName = prefix.substring(0, 1).toUpperCase() + prefix.substring(1);
+        } else {
+            resolvedStudentName = (userEmail != null) ? userEmail : "Valid Student";
         }
         
-        // 1. Initialize Landscape A4 Document with tight control over structural margins
+        // 1. Initialize Landscape A4 Document layout matrix
         Document document = new Document(PageSize.A4.rotate(), 50, 50, 50, 50);
         
         try {
             PdfWriter.getInstance(document, out);
             document.open();
 
-            // 2. Premium Dual-Layer Geometric Outer Border Matrix
+            // 2. Dual-Layer Geometric Outer Border
             Rectangle outerBorder = new Rectangle(document.getPageSize());
             outerBorder.setBorder(Rectangle.BOX);
             outerBorder.setBorderWidth(6);
-            outerBorder.setBorderColor(new Color(11, 15, 25)); // Dark Navy Deep Tech Accent
+            outerBorder.setBorderColor(new Color(11, 15, 25)); // Dark Navy
             document.add(outerBorder);
 
-            // Inset Inner Elegant Border Line
+            // Inset Inner Border 
             Rectangle innerBorder = new Rectangle(document.getPageSize());
             innerBorder.setLeft(15);
             innerBorder.setTop(document.getPageSize().getHeight() - 15);
@@ -58,10 +48,10 @@ public class CertificateService {
             innerBorder.setBottom(15);
             innerBorder.setBorder(Rectangle.BOX);
             innerBorder.setBorderWidth(1.5f);
-            innerBorder.setBorderColor(new Color(124, 110, 245)); // EventSphere Signature Violet Token Color
+            innerBorder.setBorderColor(new Color(124, 110, 245)); // EventSphere Violet Token Color
             document.add(innerBorder);
 
-            // 3. Premium Token Typographic Matrix Definitions
+            // 3. Typographic System Fonts
             Font brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, new Color(124, 110, 245));
             Font titleFont = FontFactory.getFont(FontFactory.TIMES_BOLD, 38, new Color(22, 25, 37));
             Font presentationFont = FontFactory.getFont(FontFactory.TIMES_ITALIC, 16, new Color(148, 163, 184));
@@ -69,16 +59,9 @@ public class CertificateService {
             Font descriptionFont = FontFactory.getFont(FontFactory.HELVETICA, 13, new Color(71, 85, 105));
             Font eventFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, new Color(11, 15, 25));
             Font footerTagFont = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 9, new Color(148, 163, 184));
-            Font signTextFont = FontFactory.getFont(FontFactory.HELVETICA, 11, new Color(71, 85, 105));
+            Font signTextFont = FontFactory.getFont(FontFactory.HELVETICA, 11, new Color(148, 163, 184));
             Font signLineFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, new Color(22, 25, 37));
 
-            // Use an invisible structural parent table to anchor alignment elements cleanly
-            PdfPTable containerTable = new PdfPTable(1);
-            containerTable.setWidthPercentage(100);
-            containerTable.getDefaultCell().setBorder(PdfPCell.NO_BORDER);
-            containerTable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
-
-            // Spacing Helper Block
             Paragraph lineSpacer = new Paragraph("\n");
 
             // --- HEADER BRANDING BLOCK ---
@@ -110,15 +93,15 @@ public class CertificateService {
             document.add(studentNameLine);
             document.add(lineSpacer);
 
-            // --- RECOGNITION DESCRIPTION MATRICES ---
+            // --- RECOGNITION DESCRIPTION ---
             Paragraph achievementDescription = new Paragraph(
                 "has demonstrated outstanding technical execution, attendance discipline, and verified completion of the dynamic bootcamp training sprint format structured for:\n", descriptionFont);
             achievementDescription.setAlignment(Element.ALIGN_CENTER);
-            achievementDescription.setLeading(18); // Elegant line spacing
+            achievementDescription.setLeading(18); 
             document.add(achievementDescription);
             document.add(lineSpacer);
 
-            // --- DYNAMICALLY RESOLVED COURSE KEY TARGET ---
+            // --- COURSE TARGET ---
             Paragraph eventTitleContainer = new Paragraph("« " + eventName + " »", eventFont);
             eventTitleContainer.setAlignment(Element.ALIGN_CENTER);
             document.add(eventTitleContainer);
@@ -127,16 +110,15 @@ public class CertificateService {
             document.add(lineSpacer);
             document.add(lineSpacer);
 
-            // --- SIGNATURES & VERIFICATION ARCHITECTURE MATRIX ---
+            // --- SIGNATURES FOOTER ---
             PdfPTable executionFooterTable = new PdfPTable(2);
             executionFooterTable.setWidthPercentage(90);
             
             // Left Signature Cell
             PdfPCell leftCell = new PdfPCell();
             leftCell.setBorder(PdfPCell.NO_BORDER);
-            leftCell.setHorizontalAlignment(Element.ALIGN_CENTER);
             Paragraph signLine1 = new Paragraph("___________________________", signTextFont);
-            signLine1.setAlignment(Element.ALIGN_CENTER);
+            signLine1.setAlignment(Element.ALIGN_CENTER); 
             Paragraph directorTitle = new Paragraph("Academic Program Director", signLineFont);
             directorTitle.setAlignment(Element.ALIGN_CENTER);
             leftCell.addElement(signLine1);
@@ -146,7 +128,6 @@ public class CertificateService {
             // Right Signature Cell
             PdfPCell rightCell = new PdfPCell();
             rightCell.setBorder(PdfPCell.NO_BORDER);
-            rightCell.setHorizontalAlignment(Element.ALIGN_CENTER);
             Paragraph signLine2 = new Paragraph("___________________________", signTextFont);
             signLine2.setAlignment(Element.ALIGN_CENTER);
             Paragraph techLeadTitle = new Paragraph("EventSphere Platform Registry", signLineFont);
@@ -160,7 +141,7 @@ public class CertificateService {
             document.add(lineSpacer);
             document.add(lineSpacer);
 
-            // --- CENTRAL CRYPTOGRAPHIC LOG METADATA TAG ---
+            // --- FOOTER SECURITY HASH INFORMATION TAG ---
             Paragraph registryLogTag = new Paragraph("Verified Security Hash Signed via EventSphere Node Mesh Authentication Architecture • Multi-Tenant Enterprise Database Node", footerTagFont);
             registryLogTag.setAlignment(Element.ALIGN_CENTER);
             document.add(registryLogTag);
