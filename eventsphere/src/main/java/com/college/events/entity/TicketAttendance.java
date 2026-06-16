@@ -21,10 +21,9 @@ public class TicketAttendance {
 
     private boolean attended;  
 
-    // Standard No-Args Constructor required by JPA
+    // Required by JPA
     public TicketAttendance() {}
 
-    // Explicit Full Constructor for our custom builder function
     public TicketAttendance(Long id, String userId, String eventId, String eventTitle, boolean attended) {
         this.id = id;
         this.userId = userId;
@@ -33,14 +32,14 @@ public class TicketAttendance {
         this.attended = attended;
     }
 
-    // --- EXPLICIT GETTERS ---
+    // --- GETTERS ---
     public Long getId() { return id; }
     public String getUserId() { return userId; }
     public String getEventId() { return eventId; }
     public String getEventTitle() { return eventTitle; }
     public boolean isAttended() { return attended; }
 
-    // --- FIXED: ADDED EXPLICIT SETTERS TO REMOVE CONTROLLER RED LINES ---
+    // --- MANUALLY ADDED SETTERS FOR DATABASE UPDATE ---
     public void setAttended(boolean attended) { 
         this.attended = attended; 
     }
@@ -57,7 +56,7 @@ public class TicketAttendance {
         this.eventTitle = eventTitle; 
     }
 
-    // --- MANUAL STATIC BUILDER PATTERN APPROACH ---
+    // --- BUILDER PATTERN ---
     public static Builder builder() {
         return new Builder();
     }
@@ -73,7 +72,7 @@ public class TicketAttendance {
         public Builder userId(String userId) { this.userId = userId; return this; }
         public Builder eventId(String eventId) { this.eventId = eventId; return this; }
         public Builder eventTitle(String eventTitle) { this.eventTitle = eventTitle; return this; }
-        public Builder attended(boolean attended) { this.attended = attended; return this; }
+        public Builder attended(boolean attended) { this.attended = attended; return this; return this; }
 
         public TicketAttendance build() {
             return new TicketAttendance(id, userId, eventId, eventTitle, attended);

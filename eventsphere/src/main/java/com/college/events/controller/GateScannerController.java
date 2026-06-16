@@ -23,6 +23,7 @@ public class GateScannerController {
         this.certificateService = certificateService;
     }
 
+    // 1. ENDPOINT TO DOWNLOAD THE CERTIFICATE (Blocks if not scanned)
     @GetMapping("/download-certificate")
     public ResponseEntity<byte[]> downloadCertificate(
             @RequestParam String userId, 
@@ -33,21 +34,12 @@ public class GateScannerController {
         
         Optional<TicketAttendance> attendance = ticketAttendanceRepository.findByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
         
-        // --- TEMPORARY BYPASS SWITCH FOR TESTING ---
-        // If the record isn't found at all, we fall back to a default title so the page doesn't crash.
-        String eventTitle = "Event Participant Training Sprint";
-        if (attendance.isPresent()) {
-            eventTitle = attendance.get().getEventTitle();
-        }
-        
-        // COMMENTED OUT FOR TESTING: This removes the 403 barrier entirely!
-        /*
+        // SECURITY LAYER: If the record is missing or attended is false, block with 403!
         if (attendance.isEmpty() || !attendance.get().isAttended()) {
             return ResponseEntity.status(403).body(null); 
         }
-        */
 
-        // Generate the PDF directly using your 2-argument service method
+        String eventTitle = attendance.get().getEventTitle();
         byte[] pdfContents = certificateService.generateCertificatePdf(cleanUserId, eventTitle);
         
         String cleanFileName = "Certificate_" + cleanEventId + ".pdf";
@@ -56,5 +48,28 @@ public class GateScannerController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + cleanFileName)
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfContents);
+    }
+
+    // 2. ENDPOINT FOR THE QR CODE SCANNER (Changes attended from false to true)
+    @PostMapping("/verify-scan")
+    public ResponseEntity<String> verifyScan(@RequestParam String userId, @RequestParam String eventId) {
+        String cleanUserId = userId.trim();
+        String cleanEventId = eventId.trim();
+        
+        Optional<TicketAttendance> attendanceOpt = ticketAttendanceRepository.findByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
+        
+        if (attendanceOpt.isPresent()) {
+            TicketAttendance attendance = attendanceOpt.get();
+            
+            // Flip attendance flag to true
+            attendance.setAttended(true); 
+            
+            // Save the change directly into your MySQL database
+            ticketAttendanceRepository.save(attendance); 
+            
+            return ResponseEntity.ok("Attendance recorded successfully! Certificate unlocked.");
+        }
+        
+        return ResponseEntity.status(404).body("Registration record not found.");
     }
 }
