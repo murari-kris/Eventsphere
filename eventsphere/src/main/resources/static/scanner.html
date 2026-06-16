@@ -54,7 +54,6 @@
       font-size: 0.85rem;
     }
 
-    /* Premium Snap Button Interface Layout */
     .upload-zone {
       margin: 2rem 0;
       padding: 2rem 1rem;
@@ -83,7 +82,6 @@
       transform: scale(0.98);
     }
 
-    /* Status Flash Card Results Panel */
     .result-overlay {
       margin-top: 1.5rem;
       padding: 1.25rem;
@@ -160,7 +158,6 @@
     let html5QrCodeEngine;
 
     function initializeFileScannerEngine() {
-      // Instantiate processing class profile target on the hidden reference div
       html5QrCodeEngine = new Html5Qrcode("reader");
       
       const fileInputElement = document.getElementById('qrFileInput');
@@ -172,7 +169,6 @@
         showLocalStatusFeedback("PROCESSING", "Analyzing captured ticket signature matrix...", "Parsing image...");
 
         try {
-          // Parse string context right out of file binary image structure locally
           const decodedText = await html5QrCodeEngine.scanFile(capturedImageFile, true);
           onScanSuccess(decodedText);
         } catch (scanError) {
@@ -186,44 +182,72 @@
      */
     async function onScanSuccess(decodedText) {
       try {
-        // Dispatch structured transaction array directly to Spring Boot runtime on host port 8085
-        const response = await fetch('http://192.168.1.52:8085/api/tickets/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ token: decodedText })
+        console.log("Decoded QR Text content:", decodedText);
+        
+        let userId = "";
+        let eventId = "";
+
+        // Strategy A: Check if QR code is plaintext structured parameters (userId=...&eventId=...)
+        if (decodedText.includes("userId=") || decodedText.includes("eventId=")) {
+          const queryString = decodedText.includes("?") ? decodedText.split("?")[1] : decodedText;
+          const searchParams = new URLSearchParams(queryString);
+          userId = searchParams.get('userId');
+          eventId = searchParams.get('eventId');
+        } 
+        // Strategy B: Check if data is nested inside an encryption wrapper or base-64 layout string
+        else {
+          try {
+            const nativelyDecodedString = atob(decodedText);
+            const searchParams = new URLSearchParams(nativelyDecodedString);
+            userId = searchParams.get('userId');
+            eventId = searchParams.get('eventId');
+          } catch(e) {
+            // Strategy C: Split using basic comma separation fallback
+            const segments = decodedText.split(",");
+            if (segments.length >= 2) {
+              userId = segments[0].trim();
+              eventId = segments[1].trim();
+            }
+          }
+        }
+
+        // Raise a logical exception if string parameters failed parsing filters entirely
+        if (!userId || !eventId) {
+          throw new Error("Unable to parse explicit valid userId or eventId keys out of this QR data formatting matrix.");
+        }
+
+        // Build target Production URL pointing to your Live Render API environment
+        const targetRenderUrl = `https://eventsphere-e553.onrender.com/api/tickets/verify-scan?userId=${encodeURIComponent(userId)}&eventId=${encodeURIComponent(eventId)}`;
+
+        // Dispatch network stream via secure POST request to synchronize MySQL records
+        const response = await fetch(targetRenderUrl, {
+          method: 'POST'
         });
 
+        const textBodyResponse = await response.text();
+
         if (response.ok) {
-          const data = await response.json();
-          renderServerValidationOutput(data);
+          renderServerValidationOutput({
+            status: "GRANTED",
+            student: userId,
+            event: eventId,
+            message: "✓ " + textBodyResponse
+          });
         } else {
-          throw new Error("Network parsing route fault context triggered");
+          renderServerValidationOutput({
+            status: "REJECTED",
+            student: userId,
+            event: eventId,
+            message: "❌ Verification Denied: " + textBodyResponse
+          });
         }
 
       } catch (error) {
-        // BACKEND CONNECTION FALLBACK MODE:
-        // Try local decryption extraction on the device via base64 translation routines
-        try {
-          const nativelyDecodedString = atob(decodedText);
-          const searchParams = new URLSearchParams(nativelyDecodedString);
-          
-          const studentEmail = searchParams.get('userId') || "Unknown Student";
-          const targetedEvent = searchParams.get('eventId') || "Unknown Event";
-
-          renderServerValidationOutput({
-            status: "DECODED_OFFLINE",
-            student: studentEmail,
-            event: targetedEvent,
-            message: "✓ Pass verified locally via device hardware pipeline engine fallback."
-          });
-        } catch (fallbackFailure) {
-          renderServerValidationOutput({
-            status: "ERROR",
-            message: "Invalid token layout data framework constraint detected."
-          });
-        }
+        console.error("Scanning synchronization processing error: ", error);
+        renderServerValidationOutput({
+          status: "ERROR",
+          message: error.message || "Failed to finalize ledger synchronization with backend server database."
+        });
       }
     }
 
@@ -242,15 +266,12 @@
       if (data.status === "GRANTED") {
         statusTitle.textContent = "✓ ACCESS GRANTED";
         metaContainer.textContent = `Student: ${data.student} | Event: ${data.event}`;
-      } else if (data.status === "DECODED_OFFLINE") {
-        statusTitle.textContent = "✓ LOCAL EXTRACTION SUCCESS";
-        metaContainer.textContent = `User: ${data.student}\nPayload ID: ${data.event}`;
       } else if (data.status === "DUPLICATE") {
         statusTitle.textContent = "⚠ DOUBLE ENTRY DENIED";
         metaContainer.textContent = `Flagged Holder: ${data.student}`;
       } else {
         statusTitle.textContent = "❌ ENTRY REJECTED";
-        metaContainer.textContent = "Verification Failed";
+        metaContainer.textContent = data.status === "ERROR" ? "System Error" : "Verification Failed";
       }
 
       messageBody.textContent = data.message;
@@ -268,7 +289,7 @@
 
     function resumeScanningWorkflow() {
       document.getElementById('resultCard').style.display = "none";
-      document.getElementById('qrFileInput').value = ""; // Reset file path stream context pointer
+      document.getElementById('qrFileInput').value = ""; 
     }
 
     window.addEventListener('load', initializeFileScannerEngine);
