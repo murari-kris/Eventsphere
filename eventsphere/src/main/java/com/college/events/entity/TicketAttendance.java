@@ -33,12 +33,29 @@ public class TicketAttendance {
         this.attended = attended;
     }
 
-    // --- EXPLICIT GETTERS (Bypasses Lombok to fix IDE red lines) ---
+    // --- EXPLICIT GETTERS ---
     public Long getId() { return id; }
     public String getUserId() { return userId; }
     public String getEventId() { return eventId; }
     public String getEventTitle() { return eventTitle; }
     public boolean isAttended() { return attended; }
+
+    // --- FIXED: ADDED EXPLICIT SETTERS TO REMOVE CONTROLLER RED LINES ---
+    public void setAttended(boolean attended) { 
+        this.attended = attended; 
+    }
+    
+    public void setUserId(String userId) { 
+        this.userId = userId; 
+    }
+    
+    public void setEventId(String eventId) { 
+        this.eventId = eventId; 
+    }
+    
+    public void setEventTitle(String eventTitle) { 
+        this.eventTitle = eventTitle; 
+    }
 
     // --- MANUAL STATIC BUILDER PATTERN APPROACH ---
     public static Builder builder() {
