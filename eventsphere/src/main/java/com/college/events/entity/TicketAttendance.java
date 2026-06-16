@@ -39,7 +39,7 @@ public class TicketAttendance {
     public String getEventTitle() { return eventTitle; }
     public boolean isAttended() { return attended; }
 
-    // --- MANUALLY ADDED SETTERS FOR DATABASE UPDATE ---
+    // --- SETTERS FOR DATABASE UPDATE ---
     public void setAttended(boolean attended) { 
         this.attended = attended; 
     }
@@ -72,7 +72,12 @@ public class TicketAttendance {
         public Builder userId(String userId) { this.userId = userId; return this; }
         public Builder eventId(String eventId) { this.eventId = eventId; return this; }
         public Builder eventTitle(String eventTitle) { this.eventTitle = eventTitle; return this; }
-        public Builder attended(boolean attended) { this.attended = attended; return this; return this; }
+        
+        // FIXED: Duplicate statement removed here
+        public Builder attended(boolean attended) { 
+            this.attended = attended; 
+            return this; 
+        }
 
         public TicketAttendance build() {
             return new TicketAttendance(id, userId, eventId, eventTitle, attended);
