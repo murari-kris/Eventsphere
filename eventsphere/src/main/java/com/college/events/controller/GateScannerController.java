@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -23,7 +24,7 @@ public class GateScannerController {
         this.certificateService = certificateService;
     }
 
-    // 1. ENDPOINT TO DOWNLOAD THE CERTIFICATE (Blocks with 403 if not scanned)
+    // 1. ENDPOINT TO DOWNLOAD THE CERTIFICATE
     @GetMapping("/download-certificate")
     public ResponseEntity<byte[]> downloadCertificate(
             @RequestParam String userId, 
@@ -32,14 +33,24 @@ public class GateScannerController {
         String cleanUserId = userId.trim();
         String cleanEventId = eventId.trim();
         
-        Optional<TicketAttendance> attendance = ticketAttendanceRepository.findByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
+        List<TicketAttendance> attendanceRecords = ticketAttendanceRepository.findAllByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
         
-        // SECURITY LAYER: If the record is missing or attended is false, block with 403!
-        if (attendance.isEmpty() || !attendance.get().isAttended()) {
+        if (attendanceRecords.isEmpty()) {
             return ResponseEntity.status(403).body(null); 
         }
 
-        String eventTitle = attendance.get().getEventTitle();
+        boolean hasAttended = attendanceRecords.stream().anyMatch(TicketAttendance::isAttended);
+        
+        if (!hasAttended) {
+            return ResponseEntity.status(403).body(null); 
+        }
+
+        String eventTitle = attendanceRecords.stream()
+                .map(TicketAttendance::getEventTitle)
+                .filter(title -> title != null && !title.isEmpty())
+                .findFirst()
+                .orElse("Event Participant Training Sprint");
+
         byte[] pdfContents = certificateService.generateCertificatePdf(cleanUserId, eventTitle);
         
         String cleanFileName = "Certificate_" + cleanEventId + ".pdf";
@@ -50,22 +61,21 @@ public class GateScannerController {
                 .body(pdfContents);
     }
 
-    // 2. ENDPOINT FOR THE QR CODE SCANNER (With Stable Constructor Fallback)
+    // 2. ENDPOINT FOR THE QR CODE SCANNER
     @PostMapping("/verify-scan")
     public ResponseEntity<String> verifyScan(@RequestParam String userId, @RequestParam String eventId) {
         String cleanUserId = userId.trim();
         String cleanEventId = eventId.trim();
         
-        Optional<TicketAttendance> attendanceOpt = ticketAttendanceRepository.findByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
+        List<TicketAttendance> attendanceRecords = ticketAttendanceRepository.findAllByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
         
-        if (attendanceOpt.isPresent()) {
-            TicketAttendance attendance = attendanceOpt.get();
-            attendance.setAttended(true); 
-            ticketAttendanceRepository.save(attendance); 
+        if (!attendanceRecords.isEmpty()) {
+            for (TicketAttendance attendance : attendanceRecords) {
+                attendance.setAttended(true);
+                ticketAttendanceRepository.save(attendance);
+            }
             return ResponseEntity.ok("Attendance recorded successfully! Certificate unlocked.");
         } else {
-            // STABLE FALLBACK: Uses explicit constructor array arguments to completely bypass manual builder bugs
-            // Parameters: id (null for auto-increment), userId, eventId, eventTitle, attended (true)
             TicketAttendance fallbackAttendance = new TicketAttendance(
                 null, 
                 cleanUserId, 
