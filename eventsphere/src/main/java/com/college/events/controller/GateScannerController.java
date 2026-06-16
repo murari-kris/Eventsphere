@@ -28,24 +28,19 @@ public class GateScannerController {
             @RequestParam String userId, 
             @RequestParam String eventId) {
         
-        // 1. Clean parameters to guarantee exact matches with database strings
         String cleanUserId = userId.trim().toLowerCase();
         String cleanEventId = eventId.trim().toLowerCase();
         
-        // 2. Query the live ledger records 
         Optional<TicketAttendance> attendance = ticketAttendanceRepository.findByEventIdAndUserId(cleanEventId, cleanUserId);
         
-        // 3. Security Check: Block if the record doesn't exist or if they haven't checked in yet
         if (attendance.isEmpty() || !attendance.get().isAttended()) {
             return ResponseEntity.status(403).body(null); 
         }
 
-        // 4. Resolve event title safely from the entity
         String eventTitle = attendance.get().getEventTitle();
 
-        // 5. FIXED: Pass null instead of getStudentName(). 
-        // CertificateService will read the email and cleanly format it (e.g. "krishna" -> "Krishna")
-        byte[] pdfContents = certificateService.generateCertificatePdf(cleanUserId, eventTitle, null);
+        // PASSING EXACTLY TWO ARGUMENTS HIERARCHY
+        byte[] pdfContents = certificateService.generateCertificatePdf(cleanUserId, eventTitle);
         
         String cleanFileName = "Certificate_" + cleanEventId + ".pdf";
         
