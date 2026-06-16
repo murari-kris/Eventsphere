@@ -28,10 +28,11 @@ public class GateScannerController {
             @RequestParam String userId, 
             @RequestParam String eventId) {
         
-        String cleanUserId = userId.trim().toLowerCase();
-        String cleanEventId = eventId.trim().toLowerCase();
+        String cleanUserId = userId.trim();
+        String cleanEventId = eventId.trim();
         
-        Optional<TicketAttendance> attendance = ticketAttendanceRepository.findByEventIdAndUserId(cleanEventId, cleanUserId);
+        // FIXED: Using the case-insensitive method to ignore capitalization differences in MySQL rows
+        Optional<TicketAttendance> attendance = ticketAttendanceRepository.findByEventIdIgnoreCaseAndUserIdIgnoreCase(cleanEventId, cleanUserId);
         
         if (attendance.isEmpty() || !attendance.get().isAttended()) {
             return ResponseEntity.status(403).body(null); 
@@ -39,7 +40,6 @@ public class GateScannerController {
 
         String eventTitle = attendance.get().getEventTitle();
 
-        // PASSING EXACTLY TWO ARGUMENTS HIERARCHY
         byte[] pdfContents = certificateService.generateCertificatePdf(cleanUserId, eventTitle);
         
         String cleanFileName = "Certificate_" + cleanEventId + ".pdf";
